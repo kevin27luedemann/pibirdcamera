@@ -64,10 +64,11 @@ def main():
                 fi.write("file '{}_before.mp4'\n".format(fname))
                 fi.write("file '{}_during.mp4'\n".format(fname))
                 fi.write("file '{}_after.mp4'".format(fname))
-            os.system("ffmpeg -f concat -safe 0 -i {}_cat.txt -c copy {}.mp4 1> /dev/null 2> /dev/null &".format(fname,fname))
-            #os.remove("{}_before.mp4".format(fname))
-            #os.remove("{}_during.mp4".format(fname))
-            #os.remove("{}_after.mp4".format(fname))
+            command = "ffmpeg -f concat -safe 0 -i {}_cat.txt -c copy {}.mp4 1> /dev/null 2> /dev/null && ".format(fname,fname)
+            command += " rm -f {}_before.mp4 && ".format(fname)
+            command += " rm -f {}_during.mp4 && ".format(fname)
+            command += " rm -f {}_after.mp4 && ".format(fname)
+            os.system(command)
 
     #Stop all recording
     camera.stop_recording(splitter_port=2)
