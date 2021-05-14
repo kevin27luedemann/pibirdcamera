@@ -68,8 +68,8 @@ def main():
             command += "rm -f {}_before.mp4 && ".format(fname)
             command += "rm -f {}_during.mp4 && ".format(fname)
             command += "rm -f {}_after.mp4 && ".format(fname)
-            command += "rm -f {}_cat.txt".format(fname)
-            print(command)
+            command += "rm -f {}_cat.txt &".format(fname)
+            #print(command)
             os.system(command)
 
     #Stop all recording
