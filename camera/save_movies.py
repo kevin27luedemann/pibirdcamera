@@ -5,7 +5,7 @@ from picamera import PiCameraCircularIO as circular
 import time
 from io import BytesIO
 
-class MyMotionDetector(picamera.array.PiMotionAnalysis):
+class MyMotionDetector(array.PiMotionAnalysis):
     def analyse(self, a):
         a = np.sqrt(
             np.square(a['x'].astype(np.float)) +
