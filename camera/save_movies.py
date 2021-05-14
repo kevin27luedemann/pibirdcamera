@@ -13,16 +13,23 @@ motion_detected     = False
 class MyMotionDetector(array.PiMotionAnalysis):
     def analyse(self, a):
         global motion_detected
-        a = np.sqrt(
-            np.square(a['x'].astype(np.float)) +
-            np.square(a['y'].astype(np.float))
-            ).clip(0, 255).astype(np.uint8)
-        # If there're more than 10 vectors with a magnitude greater
-        # than 60, then say we've detected motion
-        if (a > 60).sum() > 10:
-            motion_detected     = True
-        else:
-            motion_detected     = False
+        a = np.sqrt(np.square(a['x'].astype(np.float)) +
+                    np.square(a['y'].astype(np.float)))
+
+        if      not(motion_detected)    and \
+                (a > 30).sum() > 5:
+            motion_detected         = True
+            self.no_motion_frames   = 0
+
+        elif    motion_detected         and \
+                (a > 30).sum() <= 5     and \
+                self.no_motion_frames <= self.camera.framerate:
+            self.no_motion_frames  += 1
+
+        elif    motion_detected         and \
+                self.no_motion_frames > self.camera.framerate:
+            motion_detected         = False
+            self.no_motion_frames   = 0
 
 def loop(loglevel=1):
     global motion_detected
@@ -39,9 +46,11 @@ def loop(loglevel=1):
     stream              = circular(camera, seconds=5)
     camera.start_recording(stream, format="h264")
 
-    #Perform motion analysis from second splitter port
-    camera.start_recording('/dev/null', format='h264', splitter_port=2,
-                            motion_output=MyMotionDetector(camera))
+    #Perform motion analysis from second splitter port with lowest resolution.
+    #Reson is performance and enhanced noise removal
+    camera.start_recording('/dev/null', format='h264',
+                            splitter_port=2, resize=(640,480),
+                            motion_output=MyMotionDetector(camera,size=(640,480)))
     
     start   = dt.now()
     #Do some stuff while motion is not detected and wait
@@ -58,20 +67,18 @@ def loop(loglevel=1):
             stream.clear()
             while motion_detected:
                 camera.wait_recording(1)
-            camera.split_recording(stream,splitter_port=1)
             camera.wait_recording(5)
-            stream.copy_to("{}_after.mp4".format(fname))
-            stream.clear()
+            while motion_detected:
+                camera.wait_recording(1)
+            camera.split_recording(stream,splitter_port=1)
 
             command = "ffmpeg -f concat --framerate {} -safe 0 -i {}_cat.txt -c copy {}.mp4 1> /dev/null 2> /dev/null && ".format(int(camera.framerate),fname,fname)
             command += "rm -f {}_before.mp4 && ".format(fname)
             command += "rm -f {}_during.mp4 && ".format(fname)
-            command += "rm -f {}_after.mp4 && ".format(fname)
             command += "rm -f {}_cat.txt &".format(fname)
             with open("{}_cat.txt".format(fname),"w") as fi:
                 fi.write("file '{}_before.mp4'\n".format(fname))
                 fi.write("file '{}_during.mp4'\n".format(fname))
-                fi.write("file '{}_after.mp4' \n".format(fname))
                 fi.write("#{}".format(command))
             #Only run this line if you have enough CPU grunt
             #os.system(command)
