@@ -35,8 +35,12 @@ class MotionDetec(array.PiMotionAnalysis):
             self.no_motion_frames   = 0
 
         elif    motion_detected         and \
+                (a > self.threshold).sum() > self.num_blocks:
+            self.no_motion_frames   = 0
+
+        elif    motion_detected         and \
                 (a > self.threshold).sum() <= self.num_blocks     and \
-                self.no_motion_frames <= self.camera.framerate:
+                self.no_motion_frames <= self.num_no_motion_frames:
             self.no_motion_frames  += 1
 
         elif    motion_detected         and \
