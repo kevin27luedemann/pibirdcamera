@@ -45,11 +45,16 @@ def main():
     start   = dt.now()
     #Do some stuff while motion is not detected and wait
     while dt.now()-start < tidt(seconds=30.):
-        #print("Waiting")
+        print("Waiting")
         camera.wait_recording(1)
         if motion_detected:
-            camera.wait_recording(5)
-            stream.copy_to("{}.mp4".format(dt.strftime(dt.now(),"%Y%m%d_%H%M%S")),seconds=10)
+            fname   ="{}".format(dt.strftime(dt.now(),"%Y%m%d_%H%M%S"))
+            camera.split_recording("{}_during.mp4".format(fname),splitter_port=1)
+            stream.copy_to("{}_before.mp4".format(fname),seconds=10)
+            stream.clear()
+            while motion_detected:
+                camera.wait_recording(1)
+            camera.split_recording(stream,splitter_port=1)
 
     #Stop all recording
     camera.stop_recording(splitter_port=2)
