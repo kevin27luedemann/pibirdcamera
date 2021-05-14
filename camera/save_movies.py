@@ -49,7 +49,7 @@ def main():
         camera.wait_recording(1)
         if motion_detected:
             camera.wait_recording(5)
-            stream.copy_to("{}.mp4".format(dt.strptime(dt.now(),"%Y%m%d_%H%M%S")),seconds=10)
+            stream.copy_to("{}.mp4".format(dt.strftime(dt.now(),"%Y%m%d_%H%M%S")),seconds=10)
 
     #Stop all recording
     camera.stop_recording(splitter_port=2)
