@@ -5,26 +5,35 @@ from picamera import PiCameraCircularIO as circular
 import time
 from io import BytesIO
 
+class MyMotionDetector(picamera.array.PiMotionAnalysis):
+    def analyse(self, a):
+        a = np.sqrt(
+            np.square(a['x'].astype(np.float)) +
+            np.square(a['y'].astype(np.float))
+            ).clip(0, 255).astype(np.uint8)
+        # If there're more than 10 vectors with a magnitude greater
+        # than 60, then say we've detected motion
+        if (a > 60).sum() > 10:
+            print('Motion detected!')
+
 def main():
     camera = PiCamera()
-    camera.resolution   = (640, 480)
-    camera.framerate    = 10
-    #camera.resolution   = (1920, 1080)
-    #camera.framerate    = 30
-    #camera.resolution   = (2592, 1944)
-    #camera.framerate    = 15
+    #Full view but 4 times lower resolution
+    camera.resolution   = (1640,1232) 
+    camera.framerate    = 30
 
     #start warm up befor recording to get exposure right
     camera.start_preview()
     time.sleep(2)
 
-    #setup circular io buffer
+    #Use circular io buffor
     stream              = circular(camera, seconds=10)
-    
-    #start actual recording
     camera.start_recording(stream, format="h264")
-    #camera.start_recording('my_video.mjpg')
-    camera.start_recording('my_video.mp4', format="h264", splitter_port=2)
+
+    #Perform motion analysis from second splitter port
+    camera.start_recording('/dev/null', format='h264', splitter_port=2,
+                            motion_output=MyMotionDetector(camera))
+    
     camera.wait_recording(20)
     camera.stop_recording(splitter_port=2)
     camera.stop_recording()
