@@ -45,7 +45,7 @@ def main():
     start   = dt.now()
     #Do some stuff while motion is not detected and wait
     while dt.now()-start < tidt(seconds=30.):
-        print("Waiting")
+        #print("Waiting")
         camera.wait_recording(1)
         if motion_detected:
             camera.wait_recording(5)
