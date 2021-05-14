@@ -6,6 +6,7 @@ import time
 from io import BytesIO
 from datetime import datetime as dt
 from datetime import timedelta as tidt
+import os,sys
 
 motion_detected     = False
 
@@ -35,7 +36,7 @@ def main():
     time.sleep(2)
 
     #Use circular io buffor
-    stream              = circular(camera, seconds=10)
+    stream              = circular(camera, seconds=5)
     camera.start_recording(stream, format="h264")
 
     #Perform motion analysis from second splitter port
@@ -48,13 +49,25 @@ def main():
         print("Waiting")
         camera.wait_recording(1)
         if motion_detected:
+            print("detected")
             fname   ="{}".format(dt.strftime(dt.now(),"%Y%m%d_%H%M%S"))
             camera.split_recording("{}_during.mp4".format(fname),splitter_port=1)
-            stream.copy_to("{}_before.mp4".format(fname),seconds=10)
+            stream.copy_to("{}_before.mp4".format(fname),seconds=5)
             stream.clear()
             while motion_detected:
                 camera.wait_recording(1)
             camera.split_recording(stream,splitter_port=1)
+            camera.wait_recording(5)
+            stream.copy_to("{}_after.mp4".format(fname),seconds=5)
+            stream.clear()
+            with open("{}_cat.txt".format(fname),"w") as fi:
+                fi.write("file '{}_before.mp4'\n".format(fname))
+                fi.write("file '{}_during.mp4'\n".format(fname))
+                fi.write("file '{}_after.mp4'".format(fname))
+            sys.command("ffmpeg -f concat -safe 0 -i {}_cat.txt -c copy {}.mp4 1> /dev/null 2> /dev/null &".format(fname,fname))
+            os.remove("{}_before.mp4".format(fname))
+            os.remove("{}_during.mp4".format(fname))
+            os.remove("{}_after.mp4".format(fname))
 
     #Stop all recording
     camera.stop_recording(splitter_port=2)
