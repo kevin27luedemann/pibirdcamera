@@ -5,6 +5,7 @@ from picamera import PiCameraCircularIO as circular
 import time
 from io import BytesIO
 from datetime import datetime as dt
+from datetime import timedelta as tidt
 
 motion_detected     = False
 
@@ -43,7 +44,7 @@ def main():
     
     start   = dt.now()
     #Do some stuff while motion is not detected and wait
-    while dt.now()-start < dt.timedelta(seconds=30.):
+    while dt.now()-start < tidt(seconds=30.):
         print("Waiting")
         camera.wait_recording(1)
         if motion_detected:
