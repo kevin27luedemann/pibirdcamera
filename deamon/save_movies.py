@@ -50,8 +50,10 @@ def loop(praefix="",loglevel=1,concat=False,buffer_time=5):
 
     #Full view but 4 times lower resolution
     camera = PiCamera()
-    #camera.resolution   = (1640,1232) 
-    camera.resolution   = (1296,972) 
+    if camera.revision == "imx219":
+        camera.resolution   = (1640,1232) 
+    else:
+        camera.resolution   = (1296,972) 
     camera.framerate    = 30
 
     #start warmup befor recording to get exposure right
