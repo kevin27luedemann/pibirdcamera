@@ -4,7 +4,7 @@ from picamera import array
 from picamera import PiCameraCircularIO as circular
 import time
 from io import BytesIO
-from datetime import datetime
+from datetime import datetime as dt
 
 motion_detected     = False
 
@@ -41,9 +41,9 @@ def main():
     camera.start_recording('/dev/null', format='h264', splitter_port=2,
                             motion_output=MyMotionDetector(camera))
     
-    start   = time.now()
+    start   = dt.now()
     #Do some stuff while motion is not detected and wait
-    while time.now()-start < 30.:
+    while dt.now()-start < 30.:
         camera.wait_recording(1)
         if motion_detected:
             camera.wait_recording(5)
