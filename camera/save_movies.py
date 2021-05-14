@@ -4,9 +4,13 @@ from picamera import array
 from picamera import PiCameraCircularIO as circular
 import time
 from io import BytesIO
+from datetime import datetime
+
+motion_detected     = False
 
 class MyMotionDetector(array.PiMotionAnalysis):
     def analyse(self, a):
+        global motion_detected
         a = np.sqrt(
             np.square(a['x'].astype(np.float)) +
             np.square(a['y'].astype(np.float))
@@ -14,9 +18,12 @@ class MyMotionDetector(array.PiMotionAnalysis):
         # If there're more than 10 vectors with a magnitude greater
         # than 60, then say we've detected motion
         if (a > 60).sum() > 10:
-            print('Motion detected!')
+            motion_detected     = True
+        else:
+            motion_detected     = False
 
 def main():
+    global motion_detected
     camera = PiCamera()
     #Full view but 4 times lower resolution
     camera.resolution   = (1640,1232) 
@@ -34,10 +41,17 @@ def main():
     camera.start_recording('/dev/null', format='h264', splitter_port=2,
                             motion_output=MyMotionDetector(camera))
     
-    camera.wait_recording(20)
+    start   = time.now()
+    #Do some stuff while motion is not detected and wait
+    while time.now()-start < 30.:
+        camera.wait_recording(1)
+        if motion_detected:
+            camera.wait_recording(5)
+            stream.copy_to("{}.mp4".format(dt.strptime(dt.now(),"%Y%m%d_%H%M%S")),seconds=10)
+
+    #Stop all recording
     camera.stop_recording(splitter_port=2)
     camera.stop_recording()
-    stream.copy_to("my_stream.mp4",seconds=10)
     camera.stop_preview()
 
 if __name__ == "__main__":
