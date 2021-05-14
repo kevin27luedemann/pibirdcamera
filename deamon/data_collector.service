@@ -1,0 +1,13 @@
+ [Unit]
+ Description=Observation service
+ After=multi-user.target
+
+ [Service]
+ Type=idle
+ User=pi
+ Group=pi
+ Restart=always
+ ExecStart=/usr/bin/python3 /home/pi/Documents/pibirdcamera/camera/observ.py
+
+ [Install]
+ WantedBy=multi-user.target
