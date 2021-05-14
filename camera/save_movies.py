@@ -24,7 +24,7 @@ class MyMotionDetector(array.PiMotionAnalysis):
         else:
             motion_detected     = False
 
-def main():
+def loop(loglevel=1):
     global motion_detected
     camera = PiCamera()
     #Full view but 4 times lower resolution
@@ -46,31 +46,35 @@ def main():
     start   = dt.now()
     #Do some stuff while motion is not detected and wait
     while dt.now()-start < tidt(seconds=30.):
-        print("Waiting")
+        if loglevel == 0::
+            print("Waiting")
         camera.wait_recording(1)
         if motion_detected:
-            print("detected")
-            fname   ="{}".format(dt.strftime(dt.now(),"%Y%m%d_%H%M%S"))
+            fname   ="/videos/{}".format(dt.strftime(dt.now(),"%Y%m%d_%H%M%S"))
+            if loglevel < 1:
+                print("Motion at: {}".format(fname.split("/")[-1]))
             camera.split_recording("{}_during.mp4".format(fname),splitter_port=1)
-            stream.copy_to("{}_before.mp4".format(fname),seconds=5)
+            stream.copy_to("{}_before.mp4".format(fname))
             stream.clear()
             while motion_detected:
                 camera.wait_recording(1)
             camera.split_recording(stream,splitter_port=1)
             camera.wait_recording(5)
-            stream.copy_to("{}_after.mp4".format(fname),seconds=5)
+            stream.copy_to("{}_after.mp4".format(fname))
             stream.clear()
-            with open("{}_cat.txt".format(fname),"w") as fi:
-                fi.write("file '{}_before.mp4'\n".format(fname))
-                fi.write("file '{}_during.mp4'\n".format(fname))
-                fi.write("file '{}_after.mp4'".format(fname))
-            command = "ffmpeg -f concat -safe 0 -i {}_cat.txt -c copy {}.mp4 1> /dev/null 2> /dev/null && ".format(fname,fname)
+
+            command = "ffmpeg -f concat --framerate {} -safe 0 -i {}_cat.txt -c copy {}.mp4 1> /dev/null 2> /dev/null && ".format(int(camera.framerate),fname,fname)
             command += "rm -f {}_before.mp4 && ".format(fname)
             command += "rm -f {}_during.mp4 && ".format(fname)
             command += "rm -f {}_after.mp4 && ".format(fname)
             command += "rm -f {}_cat.txt &".format(fname)
-            #print(command)
-            os.system(command)
+            with open("{}_cat.txt".format(fname),"w") as fi:
+                fi.write("file '{}_before.mp4'\n".format(fname))
+                fi.write("file '{}_during.mp4'\n".format(fname))
+                fi.write("file '{}_after.mp4' \n".format(fname))
+                fi.write("#{}".format(command))
+            #Only run this line if you have enough CPU grunt
+            #os.system(command)
 
     #Stop all recording
     camera.stop_recording(splitter_port=2)
