@@ -17,7 +17,7 @@ def signal_handler(signum, frame):
     keep_running    = False
 
 class MotionDetec(array.PiMotionAnalysis):
-    def __init__(self,camera,size=None,threshold=20,num_blocks=2,num_no_motion_frames=30):
+    def __init__(self,camera,size=None,threshold=30,num_blocks=10,num_no_motion_frames=30):
         super().__init__(camera,size)
         self.no_motion_frames       = 0
         self.threshold              = threshold
@@ -44,7 +44,7 @@ class MotionDetec(array.PiMotionAnalysis):
             motion_detected         = False
             self.no_motion_frames   = 0
 
-def loop(praefix="",loglevel=1,concat=False):
+def loop(praefix="",loglevel=1,concat=False,buffer_time=5):
     global motion_detected
     global keep_running
 
@@ -65,7 +65,7 @@ def loop(praefix="",loglevel=1,concat=False):
     #Use circular io buffor
     if loglevel == 0:
         print("Create 10 seconds circular io buffer and start recording h264")
-    stream              = circular(camera, seconds=10)
+    stream              = circular(camera, seconds=buffer_time)
     camera.start_recording(stream, format="h264")
 
     #Perform motion analysis from second splitter port with lowest resolution.
@@ -90,7 +90,7 @@ def loop(praefix="",loglevel=1,concat=False):
             if loglevel < 2:
                 print("Motion at: {}".format(fname.split("/")[-1]))
             camera.split_recording("{}_during.mp4".format(fname),splitter_port=1)
-            stream.copy_to("{}_before.mp4".format(fname))
+            stream.copy_to("{}_before.mp4".format(fname),seconds=buffer_time)
             stream.clear()
             while motion_detected:
                 camera.wait_recording(1)
@@ -101,7 +101,7 @@ def loop(praefix="",loglevel=1,concat=False):
                 print("Motion done, splitting back to circular io")
             camera.split_recording(stream,splitter_port=1)
 
-            command = "ffmpeg -f concat --framerate {} -safe 0 -i {}_cat.txt -c copy {}.mp4 1> /dev/null 2> /dev/null && ".format(int(camera.framerate),fname,fname)
+            command = "ffmpeg -f concat -safe 0 -i {}_cat.txt -c copy {}.mp4 1> /dev/null 2> /dev/null && ".format(fname,fname)
             command += "rm -f {}_before.mp4 && ".format(fname)
             command += "rm -f {}_during.mp4 && ".format(fname)
             command += "rm -f {}_cat.txt &".format(fname)
@@ -126,7 +126,6 @@ def loop(praefix="",loglevel=1,concat=False):
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM,signal_handler)
 
     parser = OptionParser()
 
@@ -136,7 +135,7 @@ if __name__ == "__main__":
                         help="Loglevel: 0:verbose, 1:moderate, 2:quiet")
     parser.add_option(  "-c", "--concat", dest="concat",
                         action="store_true",default=False,
-                        help="Concat before and during videos and delete")
+                        help="Concat before and during video and delete both")
 
     (options, args) = parser.parse_args()
 

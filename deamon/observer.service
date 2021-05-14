@@ -7,7 +7,7 @@
  User=pi
  Group=pi
  Restart=always
- ExecStart=/usr/bin/python3 /home/pi/Documents/pibirdcamera/deamon/save_movies.py --loglevel 1 --praefix /videos/
+ ExecStart=/usr/bin/python3 /home/pi/Documents/pibirdcamera/deamon/save_movies.py -c --loglevel 1 --praefix /videos/
 
  [Install]
  WantedBy=multi-user.target
