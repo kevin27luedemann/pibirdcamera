@@ -17,7 +17,7 @@ def signal_handler(signum, frame):
     keep_running    = False
 
 class MotionDetec(array.PiMotionAnalysis):
-    def __init__(self,camera,size=None,threshold=30,num_blocks=5,num_no_motion_frames=30):
+    def __init__(self,camera,size=None,threshold=20,num_blocks=2,num_no_motion_frames=30):
         super().__init__(camera,size)
         self.no_motion_frames       = 0
         self.threshold              = threshold
@@ -50,7 +50,8 @@ def loop(praefix="",loglevel=1,concat=False):
 
     #Full view but 4 times lower resolution
     camera = PiCamera()
-    camera.resolution   = (1640,1232) 
+    #camera.resolution   = (1640,1232) 
+    camera.resolution   = (1296,972) 
     camera.framerate    = 30
 
     #start warmup befor recording to get exposure right
