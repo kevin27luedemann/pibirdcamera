@@ -19,8 +19,8 @@ def signal_handler(signum, frame):
 
 class MotionDetec(array.PiMotionAnalysis):
     def __init__(self,  camera,size=None,
-                        threshold=30,
-                        num_blocks=5,
+                        threshold=25,
+                        num_blocks=3,
                         num_no_motion_frames=30,
                         local_motion_mask=np.ones((40,30))):
         super().__init__(camera,size)
