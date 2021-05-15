@@ -8,6 +8,7 @@ from datetime import datetime as dt
 from datetime import timedelta as tidt
 import os,sys,signal
 from optparse import OptionParser
+from PIL import Image
 
 motion_detected     = False
 keep_running        = True
@@ -17,17 +18,28 @@ def signal_handler(signum, frame):
     keep_running    = False
 
 class MotionDetec(array.PiMotionAnalysis):
-    def __init__(self,camera,size=None,threshold=30,num_blocks=10,num_no_motion_frames=30):
+    def __init__(self,  camera,size=None,
+                        threshold=30,
+                        num_blocks=10,
+                        num_no_motion_frames=30,
+                        local_motion_mask=np.ones((40,30))):
         super().__init__(camera,size)
         self.no_motion_frames       = 0
         self.threshold              = threshold
         self.num_blocks             = num_blocks
         self.num_no_motion_frames   = num_no_motion_frames
+        self.motion_mask            = np.transpose(local_motion_mask)
+        self.motion_mask            = np.pad(   self.motion_mask,
+                                                ((0,0),(0,1)),
+                                                mode="constant",
+                                                constant_values=0)
         
     def analyse(self, a):
         global motion_detected
         a = np.sqrt(np.square(a['x'].astype(float)) +
                     np.square(a['y'].astype(float)))
+
+        a = a*self.motion_mask
 
         if      not(motion_detected)    and \
                 (a > self.threshold).sum() > self.num_blocks:
@@ -48,7 +60,11 @@ class MotionDetec(array.PiMotionAnalysis):
             motion_detected         = False
             self.no_motion_frames   = 0
 
-def loop(praefix="",loglevel=1,concat=False,buffer_time=5):
+def loop(   praefix="",
+            loglevel=1,
+            concat=False,
+            buffer_time=5,
+            motion_mask=np.ones((40,30))):
     global motion_detected
     global keep_running
 
@@ -82,7 +98,8 @@ def loop(praefix="",loglevel=1,concat=False,buffer_time=5):
                             splitter_port=2, resize=(640,480),
                             motion_output=MotionDetec(  camera,
                                                         size=(640,480),
-                                                        num_no_motion_frames=camera.framerate))
+                                                        num_no_motion_frames=camera.framerate,
+                                                        local_motion_mask=motion_mask))
     
     #Do some stuff while motion is not detected and wait
     #start   = dt.now()
@@ -130,6 +147,32 @@ def loop(praefix="",loglevel=1,concat=False,buffer_time=5):
     camera.stop_recording()
     camera.stop_preview()
 
+def create_mask(loglevel=1,praefix=""):
+    if loglevel == 0:
+        print("Some image will be taken")
+    camera = PiCamera()
+    if camera.revision == "imx219":
+        camera.resolution   = (1640,1232) 
+    else:
+        camera.resolution   = (1296,972) 
+    if loglevel == 0:
+        print(camera.resolution)
+    fname   = praefix+"mask_image"
+    if loglevel == 0:
+        print("Warmup for exposure")
+    camera.start_preview()
+    time.sleep(2)
+
+    if loglevel == 0:
+        print("Capture image")
+    camera.capture(fname+".png")
+
+    if loglevel == 0:
+        print("Taking second image with 640 by 480")
+    camera.capture(fname+"640_480.png",resize=(640,480))
+
+    camera.stop_preview()
+
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
 
@@ -137,14 +180,31 @@ if __name__ == "__main__":
 
     parser.add_option(  "-f", "--praefix", dest="praefix",default="",
                         help="File praefix and folder localtion")
+    parser.add_option(  "-m", "--mask", dest="mask",default="",
+                        help="Filename for the mask image")
     parser.add_option(  "-v", "--loglevel", dest="loglevel",default=1,
                         help="Loglevel: 0:verbose, 1:moderate, 2:quiet")
     parser.add_option(  "-c", "--concat", dest="concat",
                         action="store_true",default=False,
                         help="Concat before and during video and delete both")
+    parser.add_option(  "", "--create_mask", dest="create_mask",
+                        action="store_true",default=False,
+                        help="Take an image for the creation of motion mask")
 
     (options, args) = parser.parse_args()
 
-    loop(   praefix=options.praefix,
-            loglevel=int(options.loglevel),
-            concat=options.concat)
+    if options.create_mask:
+        create_mask(    loglevel=int(options.loglevel),
+                        praefix=options.praefix)
+    else:
+        if options.mask != "":
+            img         = Image.open(options.mask).convert('LA').resize((40,30))
+            mask        = np.array(img.getdata())[:,0].reshape((40,30))
+            mask[mask>0]= 1.0
+        else:
+            mask        = np.ones((40,30))
+
+        loop(   praefix=options.praefix,
+                loglevel=int(options.loglevel),
+                concat=options.concat,
+                motion_mask=mask)
