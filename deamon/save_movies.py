@@ -20,7 +20,7 @@ def signal_handler(signum, frame):
 class MotionDetec(array.PiMotionAnalysis):
     def __init__(self,  camera,size=None,
                         threshold=30,
-                        num_blocks=10,
+                        num_blocks=5,
                         num_no_motion_frames=30,
                         local_motion_mask=np.ones((40,30))):
         super().__init__(camera,size)
@@ -98,7 +98,7 @@ def loop(   praefix="",
                             splitter_port=2, resize=(640,480),
                             motion_output=MotionDetec(  camera,
                                                         size=(640,480),
-                                                        num_no_motion_frames=camera.framerate,
+                                                        num_no_motion_frames=camera.framerate*buffer_time,
                                                         local_motion_mask=motion_mask))
     
     #Do some stuff while motion is not detected and wait
@@ -115,9 +115,6 @@ def loop(   praefix="",
             camera.split_recording("{}_during.mp4".format(fname),splitter_port=1)
             stream.copy_to("{}_before.mp4".format(fname),seconds=buffer_time)
             stream.clear()
-            while motion_detected:
-                camera.wait_recording(1)
-            camera.wait_recording(5)
             while motion_detected:
                 camera.wait_recording(1)
             if loglevel == 0:
