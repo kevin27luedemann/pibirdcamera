@@ -13,8 +13,8 @@ def capture_to_image_obj():
 
     # Create the in-memory stream
     stream = BytesIO()
-    #reso                = (2592, 1944) #largest possible resolution (full view)
-    reso                = (3280,2464) #largest possible resolution (full view)
+    reso                = (2592, 1944) #largest possible resolution (full view)
+    #reso                = (3280,2464) #largest possible resolution (full view)
     #reso                = (1920, 1088)
     camera.resolution   = reso
 
@@ -22,7 +22,7 @@ def capture_to_image_obj():
     # Camera warm-up time
     time.sleep(2)
 
-    camera.capture(stream, format='jpeg')
+    camera.capture(stream, format='png')
     # "Rewind" the stream to the beginning so we can read its content
     stream.seek(0)
     image = Image.open(stream)
@@ -34,8 +34,8 @@ def capture_to_image_obj():
 def main():
 
     # Create the in-memory stream
-    #reso                = (2592, 1944) #largest possible resolution (full view)
-    reso                = (3280,2464) #largest possible resolution (full view)
+    reso                = (2592, 1944) #largest possible resolution (full view)
+    #reso                = (3280,2464) #largest possible resolution (full view)
     #reso                = (1920, 1080)
     #camera.framerate    = 2.0
     #camera.resolution   = reso
@@ -72,3 +72,4 @@ def main():
 
 if __name__ == "__main__":
         main()
+        #capture_to_image_obj()
