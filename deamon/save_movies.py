@@ -19,7 +19,7 @@ def signal_handler(signum, frame):
 
 class MotionDetec(array.PiMotionAnalysis):
     def __init__(self,  camera,size=None,
-                        threshold=25,
+                        threshold=30,
                         num_blocks=3,
                         num_no_motion_frames=30,
                         local_motion_mask=np.ones((40,30))):
