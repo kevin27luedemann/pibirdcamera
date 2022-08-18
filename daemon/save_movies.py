@@ -19,7 +19,7 @@ def signal_handler(signum, frame):
 
 class MotionDetec(array.PiMotionAnalysis):
     def __init__(self,  camera,size=None,
-                        threshold=15,
+                        threshold=10,
                         num_blocks=40,
                         num_no_motion_frames=30,
                         local_motion_mask=np.ones((40,30))):
@@ -71,7 +71,7 @@ class MotionDetec(array.PiMotionAnalysis):
 def loop(   praefix="",
             loglevel=1,
             concat=False,
-            buffer_time=5,
+            buffer_time=10,
             motion_mask=np.ones((40,30))):
     global motion_detected
     global keep_running
@@ -94,7 +94,7 @@ def loop(   praefix="",
 
     #Use circular io buffor
     if loglevel == 0:
-        print("Create 10 seconds circular io buffer and start recording h264")
+        print("Create {} seconds circular io buffer and start recording h264".format(buffer_time))
     stream              = circular(camera, seconds=buffer_time)
     camera.start_recording(stream, format="h264")
 
@@ -106,7 +106,7 @@ def loop(   praefix="",
                             splitter_port=2, resize=(640,480),
                             motion_output=MotionDetec(  camera,
                                                         size=(640,480),
-                                                        num_no_motion_frames=camera.framerate*buffer_time,
+                                                        num_no_motion_frames=camera.framerate*buffer_time*3,
                                                         local_motion_mask=motion_mask))
     
     #Do some stuff while motion is not detected and wait
