@@ -19,9 +19,10 @@ def signal_handler(signum, frame):
 
 class MotionDetec(array.PiMotionAnalysis):
     def __init__(self,  camera,size=None,
-                        threshold=10,
-                        num_blocks=40,
+                        threshold=3,
+                        num_blocks=10,
                         num_no_motion_frames=30,
+                        num_motion_frames=3,
                         local_motion_mask=np.ones((40,30))):
         super().__init__(camera,size)
         self.no_motion_frames       = 0
@@ -36,6 +37,7 @@ class MotionDetec(array.PiMotionAnalysis):
         self.active_nodes           =   self.motion_mask.shape[0]* \
                                         self.motion_mask.shape[0]- \
                                         (self.motion_mask==0).sum()
+        self.motion_frames          = 0
         
     def analyse(self, a):
         global motion_detected
@@ -44,15 +46,19 @@ class MotionDetec(array.PiMotionAnalysis):
         n       = self.active_nodes*3/4
 
         mb      = (b*self.motion_mask > self.threshold).sum()
-
+    
         if      not(motion_detected)    and \
                 mb > self.num_blocks and mb <= n:
-            fname   = "{}".format(dt.strftime(dt.now(),"%Y%m%d_%H%M%S"))
-            np.save("/videos/{}_x.npy".format(fname),a["x"].astype(float))
-            np.save("/videos/{}_y.npy".format(fname),a["y"].astype(float))
-            np.save("/videos/{}_s.npy".format(fname),a["sad"].astype(float))
-            motion_detected         = True
-            self.no_motion_frames   = 0
+            if self.motion_frames < num_motion_frames:
+                self.motion_frames += 1
+            else:
+                fname   = "{}".format(dt.strftime(dt.now(),"%Y%m%d_%H%M%S"))
+                np.save("/videos/{}_x.npy".format(fname),a["x"].astype(float))
+                np.save("/videos/{}_y.npy".format(fname),a["y"].astype(float))
+                np.save("/videos/{}_s.npy".format(fname),a["sad"].astype(float))
+                motion_detected         = True
+                self.no_motion_frames   = 0
+                self.motion_frames      = 0
 
         elif    motion_detected         and \
                 mb > self.num_blocks and mb <= n:
