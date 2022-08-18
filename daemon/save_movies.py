@@ -36,22 +36,26 @@ class MotionDetec(array.PiMotionAnalysis):
         
     def analyse(self, a):
         global motion_detected
-        a = np.sqrt(np.square(a['x'].astype(float)) +
-                    np.square(a['y'].astype(float)))
+        a       = np.sqrt(  np.square(a['x'].astype(float)) +
+                            np.square(a['y'].astype(float)))
+        an      = a.shape
+        n       = (an[0]+an[1])*7/8
 
-        a = a*self.motion_mask
+        a       = a*self.motion_mask
+
+        mb      = (a > self.threshold).sum()
 
         if      not(motion_detected)    and \
-                (a > self.threshold).sum() > self.num_blocks:
+                mb > self.num_blocks and mb <= n:
             motion_detected         = True
             self.no_motion_frames   = 0
 
         elif    motion_detected         and \
-                (a > self.threshold).sum() > self.num_blocks:
+                mb > self.num_blocks and mb <= n:
             self.no_motion_frames   = 0
 
         elif    motion_detected         and \
-                (a > self.threshold).sum() <= self.num_blocks     and \
+                mb <= self.num_blocks   and \
                 self.no_motion_frames <= self.num_no_motion_frames:
             self.no_motion_frames  += 1
 
