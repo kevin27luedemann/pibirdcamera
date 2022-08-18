@@ -20,7 +20,7 @@ def signal_handler(signum, frame):
 class MotionDetec(array.PiMotionAnalysis):
     def __init__(self,  camera,size=None,
                         threshold=3,
-                        num_blocks=10,
+                        num_blocks=5,
                         num_no_motion_frames=30,
                         num_motion_frames=3,
                         local_motion_mask=np.ones((40,30))):
@@ -38,6 +38,7 @@ class MotionDetec(array.PiMotionAnalysis):
                                         self.motion_mask.shape[0]- \
                                         (self.motion_mask==0).sum()
         self.motion_frames          = 0
+        self.num_motion_frames      = num_motion_frames
         
     def analyse(self, a):
         global motion_detected
@@ -49,7 +50,7 @@ class MotionDetec(array.PiMotionAnalysis):
     
         if      not(motion_detected)    and \
                 mb > self.num_blocks and mb <= n:
-            if self.motion_frames < num_motion_frames:
+            if self.motion_frames < self.num_motion_frames:
                 self.motion_frames += 1
             else:
                 fname   = "{}".format(dt.strftime(dt.now(),"%Y%m%d_%H%M%S"))
@@ -112,7 +113,7 @@ def loop(   praefix="",
                             splitter_port=2, resize=(640,480),
                             motion_output=MotionDetec(  camera,
                                                         size=(640,480),
-                                                        num_no_motion_frames=camera.framerate*buffer_time*3,
+                                                        num_no_motion_frames=camera.framerate*buffer_time*2,
                                                         local_motion_mask=motion_mask))
     
     #Do some stuff while motion is not detected and wait
