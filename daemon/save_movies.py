@@ -8,7 +8,7 @@ from datetime import datetime as dt
 from datetime import timedelta as tidt
 import os,sys,signal
 from optparse import OptionParser
-from PIL import Image
+from PIL import Image,ImageOps
 
 motion_detected     = False
 keep_running        = True
@@ -19,8 +19,8 @@ def signal_handler(signum, frame):
 
 class MotionDetec(array.PiMotionAnalysis):
     def __init__(self,  camera,size=None,
-                        threshold=5,
-                        num_blocks=5,
+                        threshold=15,
+                        num_blocks=40,
                         num_no_motion_frames=30,
                         local_motion_mask=np.ones((40,30))):
         super().__init__(camera,size)
@@ -28,25 +28,29 @@ class MotionDetec(array.PiMotionAnalysis):
         self.threshold              = threshold
         self.num_blocks             = num_blocks
         self.num_no_motion_frames   = num_no_motion_frames
-        self.motion_mask            = np.transpose(local_motion_mask)
+        self.motion_mask            = local_motion_mask
         self.motion_mask            = np.pad(   self.motion_mask,
                                                 ((0,0),(0,1)),
                                                 mode="constant",
                                                 constant_values=0)
+        self.active_nodes           =   self.motion_mask.shape[0]* \
+                                        self.motion_mask.shape[0]- \
+                                        (self.motion_mask==0).sum()
         
     def analyse(self, a):
         global motion_detected
-        a       = np.sqrt(  np.square(a['x'].astype(float)) +
+        b       = np.sqrt(  np.square(a['x'].astype(float)) +
                             np.square(a['y'].astype(float)))
-        an      = a.shape
-        n       = (an[0]+an[1])*7/8
+        n       = self.active_nodes*3/4
 
-        a       = a*self.motion_mask
-
-        mb      = (a > self.threshold).sum()
+        mb      = (b*self.motion_mask > self.threshold).sum()
 
         if      not(motion_detected)    and \
                 mb > self.num_blocks and mb <= n:
+            fname   = "{}".format(dt.strftime(dt.now(),"%Y%m%d_%H%M%S"))
+            np.save("/videos/{}_x.npy".format(fname),a["x"].astype(float))
+            np.save("/videos/{}_y.npy".format(fname),a["y"].astype(float))
+            np.save("/videos/{}_s.npy".format(fname),a["sad"].astype(float))
             motion_detected         = True
             self.no_motion_frames   = 0
 
@@ -201,8 +205,10 @@ if __name__ == "__main__":
                         praefix=options.praefix)
     else:
         if options.mask != "":
-            img         = Image.open(options.mask).convert('LA').resize((40,30))
-            mask        = np.array(img.getdata())[:,0].reshape((40,30))
+            img         = Image.open(options.mask)
+            img         = ImageOps.grayscale(img)
+            img         = img.resize((40,30))
+            mask        = np.array(img)
             mask[mask>0]= 1.0
         else:
             mask        = np.ones((40,30))
